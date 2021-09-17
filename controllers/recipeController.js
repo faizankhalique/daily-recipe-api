@@ -3,6 +3,8 @@ const Recipe = require("../models/recipe");
 const Like = require("../models/likes");
 const RecentlyViewedRecipe = require("../models/recentlyViewedRecipe");
 const utils = require("../helpers/utils");
+const sendPushNotification = require("../helpers/pushNotifications");
+const { User } = require("../models/user");
 
 exports.createRecipe = async (req, res, next) => {
   const { name, category, calories, time, serve, description } = req.body;
@@ -19,6 +21,14 @@ exports.createRecipe = async (req, res, next) => {
     recipe.image = utils.createImageUrl(destination, filename);
   }
   const result = await recipe.save();
+  const users = await User.find().lean();
+  for (const user of users) {
+    if (user.expoPushToken)
+      await sendPushNotification(user.expoPushToken, result.name, {
+        id: result._id,
+      });
+  }
+
   res.status(200).send(result);
 };
 
@@ -91,9 +101,7 @@ exports.getRecipeDetails = async (req, res, next) => {
     },
     { $sort: { createdAt: -1 } },
   ]);
-  console.log(`object`, recipes);
   const recipe = recipes[0];
-  console.log(`recipe`, recipe);
   if (!recipe) return res.status(404).send("Recipe not found!");
   let isLikedRecipe = recipe.isLiked.find((item) => item.user == req.user._id);
   const recipe_ = {

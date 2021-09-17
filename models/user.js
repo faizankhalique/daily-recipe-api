@@ -21,6 +21,7 @@ const userSchema = new Schema(
       required: true,
     },
     address: String,
+    expoPushToken: String,
     password: {
       type: String,
       trim: true,

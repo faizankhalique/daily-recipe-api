@@ -39,3 +39,14 @@ exports.changePassword = async (req, res) => {
   await user.save();
   res.status(200).send("Password Changed Successfully!");
 };
+
+exports.saveToken = async (req, res) => {
+  const body = req.body;
+  if (!validateObjectId(req.user._id))
+    return res.status(400).send("Invalid user _id");
+  let user = await User.findById(req.user._id);
+  if (!user) return res.status(400).send("User not Exist");
+  user.expoPushToken = body.token;
+  await user.save();
+  res.status(200).send("Token saved Successfully!");
+};
