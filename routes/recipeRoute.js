@@ -71,6 +71,12 @@ router
   .get(auth, recipeController.getRecipes)
   .post(auth, [upload.single("imageFile")], recipeController.createRecipe);
 router.get("/home_recipes", auth, recipeController.getHomeRecipes);
+router.get("/fresh_recipes", auth, recipeController.getFreshRecipes);
+router.get(
+  "/recommended_recipes",
+  auth,
+  recipeController.getRecommendedRecipes
+);
 router.get("/favorites_recipes", auth, recipeController.getFavoritesRecipes);
 router.get(
   "/recently_viewed_recipes",
@@ -83,6 +89,11 @@ router.put(
   "/add_recently_viewed_recipe",
   auth,
   recipeController.addRecentlyViewedRecipe
+);
+router.delete(
+  "/remove_recently_viewed_recipe",
+  auth,
+  recipeController.removeRecentlyViewedRecipe
 );
 router
   .route("/recipe/add_ingredient")
