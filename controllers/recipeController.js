@@ -84,7 +84,6 @@ exports.getFavoritesRecipes = async (req, res, next) => {
 };
 exports.getRecipeDetails = async (req, res, next) => {
   const id = req.params.id;
-  // const recipe = await Recipe.findById(id);
   const recipes = await Recipe.aggregate([
     {
       $match: {
@@ -111,7 +110,38 @@ exports.getRecipeDetails = async (req, res, next) => {
   res.status(200).send(recipe_);
 };
 exports.getHomeRecipes = async (req, res, next) => {
+  const filter = utils.getLastTwoMonthRecipeFilter();
   const recipes = await Recipe.aggregate([
+    filter,
+    {
+      $lookup: {
+        from: "Likes",
+        localField: "_id",
+        foreignField: "recipe",
+        as: "isLiked",
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ]);
+  const filterRecipes = [];
+  recipes.forEach((recipe) => {
+    let isLikedRecipe = recipe.isLiked.find(
+      (item) => item.user == req.user._id
+    );
+    filterRecipes.push({
+      ...recipe,
+      isLiked: isLikedRecipe ? isLikedRecipe.isLiked : false,
+      date: new Date(recipe.createdAt).toLocaleDateString(),
+    });
+  });
+  let freshRecipes = [...filterRecipes].slice(0, 4);
+  let recommendedRecipes = [...filterRecipes].reverse().slice(0, 5);
+  res.status(200).send({ freshRecipes, recommendedRecipes });
+};
+exports.getFreshRecipes = async (req, res, next) => {
+  const filter = utils.getLastTwoMonthRecipeFilter();
+  const recipes = await Recipe.aggregate([
+    filter,
     {
       $lookup: {
         from: "Likes",
@@ -132,11 +162,35 @@ exports.getHomeRecipes = async (req, res, next) => {
       isLiked: isLikedRecipe ? isLikedRecipe.isLiked : false,
     });
   });
-  let todayFreshRecipes = [...filterRecipes].slice(0, 4);
-  let recommendedRecipes = [...filterRecipes]
-    .filter((item) => item.isLiked == false)
-    .slice(0, 5);
-  res.status(200).send({ todayFreshRecipes, recommendedRecipes });
+
+  res.status(200).send(filterRecipes);
+};
+exports.getRecommendedRecipes = async (req, res, next) => {
+  const filter = utils.getLastMonthRecipeFilter();
+  const recipes = await Recipe.aggregate([
+    filter,
+    {
+      $lookup: {
+        from: "Likes",
+        localField: "_id",
+        foreignField: "recipe",
+        as: "isLiked",
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ]);
+  const filterRecipes = [];
+  recipes.forEach((recipe) => {
+    let isLikedRecipe = recipe.isLiked.find(
+      (item) => item.user == req.user._id
+    );
+    filterRecipes.push({
+      ...recipe,
+      isLiked: isLikedRecipe ? isLikedRecipe.isLiked : false,
+    });
+  });
+
+  res.status(200).send(filterRecipes);
 };
 exports.addRecipeIngredient = async (req, res, next) => {
   const { recipeId, name } = req.body;
@@ -188,6 +242,12 @@ exports.addRecentlyViewedRecipe = async (req, res, next) => {
     });
     await recentlyViewedRecipe.save();
   }
+  res.status(200).send(recentlyViewedRecipe);
+};
+exports.removeRecentlyViewedRecipe = async (req, res, next) => {
+  const recentlyViewedRecipe = await RecentlyViewedRecipe.deleteMany({
+    user: req.user._id,
+  });
   res.status(200).send(recentlyViewedRecipe);
 };
 exports.getRecentlyViewedRecipes = async (req, res, next) => {
