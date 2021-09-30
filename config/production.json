@@ -1,0 +1,10 @@
+{
+    "name": "Daily Recipe App",
+    "host": "https://daily-recipe-app.herokuapp.com/",
+    "assetsBaseUrl": "https://daily-recipe-app.herokuapp.com",
+    "port": 3000,
+    "DataBase_Name": "Recipe_App",
+    "DB_URI":"mongodb+srv://faizankhalique:recipeapp2975@cluster0.w4ztz.mongodb.net/Recipe_App?retryWrites=true",
+    "jwtPrivateKey": "ert33",
+    "authorization": true
+  }
