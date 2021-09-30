@@ -1,9 +1,9 @@
 {
   "name": "Daily Recipe App",
-  "host": "http://localhost",
-  "assetsBaseUrl": "http://127.0.0.1:3000",
+  "host": "https://daily-recipe-app.herokuapp.com/",
+  "assetsBaseUrl": "https://daily-recipe-app.herokuapp.com",
   "port": 3000,
-  "DataBase_Name": "daily-recipe-api",
+  "DataBase_Name": "Recipe_App",
   "jwtPrivateKey": "ert33",
   "authorization": true
 }
