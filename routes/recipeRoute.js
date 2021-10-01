@@ -8,23 +8,13 @@ const { isImage } = require("../helpers/utils");
 
 const storage = multer.diskStorage({
   destination: function (req, file, callback) {
-    const path = "./public/uploads/" + req.user._id + "/recipe/";
-    if (!fs.existsSync(path)) {
-      fs.mkdirSync(path, { recursive: true });
+    let path = "./public/uploads/" + req.user._id;
+    if (file.fieldname === "imageFile") {
+      path = path + "/recipe/";
     }
-
-    callback(null, path);
-  },
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      new Date().toISOString().replace(/:/g, " ") + "-" + file.originalname
-    );
-  },
-});
-const storage_ = multer.diskStorage({
-  destination: function (req, file, callback) {
-    const path = "./public/uploads/" + req.user._id + "/ingredients/";
+    if (file.fieldname === "ingredients") {
+      path = path + "/ingredients/";
+    }
     if (!fs.existsSync(path)) {
       fs.mkdirSync(path, { recursive: true });
     }
@@ -51,25 +41,26 @@ const upload = multer({
     cb(undefined, true);
   },
 });
-const upload_ = multer({
-  storage: storage_,
-  limits: {
-    fieldSize: 25 * 1024 * 1024, // 25MB
-    fileSize: 25 * 1024 * 1024, // 25MB
-  },
-  fileFilter(req, file, cb) {
-    if (!isImage(file.mimetype)) {
-      cb(new Error("only upload files with jpg or jpeg format."));
-    }
-    cb(undefined, true);
-  },
-});
+
 const router = express.Router();
 
 router
   .route("/recipe")
   .get(auth, recipeController.getRecipes)
-  .post(auth, [upload.single("imageFile")], recipeController.createRecipe);
+  .post(
+    auth,
+    upload.fields([
+      {
+        name: "imageFile",
+        maxCount: 1,
+      },
+      {
+        name: "ingredients",
+      },
+    ]),
+    recipeController.createRecipe
+  )
+  .delete(auth, recipeController.deleteRecipe);
 router.get("/home_recipes", auth, recipeController.getHomeRecipes);
 router.get("/fresh_recipes", auth, recipeController.getFreshRecipes);
 router.get(
@@ -95,12 +86,5 @@ router.delete(
   auth,
   recipeController.removeRecentlyViewedRecipe
 );
-router
-  .route("/recipe/add_ingredient")
-  .put(
-    auth,
-    [upload_.single("imageFile")],
-    recipeController.addRecipeIngredient
-  );
 
 module.exports = router;
