@@ -16,20 +16,38 @@ exports.createRecipe = async (req, res, next) => {
     serve,
     description,
   });
-  if (req.file) {
-    const { destination, filename } = req.file;
-    recipe.image = utils.createImageUrl(destination, filename);
-  }
-  const result = await recipe.save();
-  const users = await User.find().lean();
-  for (const user of users) {
-    if (user.expoPushToken)
-      await sendPushNotification(user.expoPushToken, result.name, {
-        id: result._id,
+  if (req.files) {
+    const recipeFile = req.files.imageFile;
+    const ingredientsFiles = req.files.ingredients;
+    if (recipeFile) {
+      recipeFile.map((file) => {
+        const { destination, filename } = file;
+        recipe.image = utils.createImageUrl(destination, filename);
       });
-  }
+      if (ingredientsFiles) {
+        const ingredients = [];
+        ingredientsFiles.map((file) => {
+          const { destination, filename, originalname } = file;
+          const name = originalname.split(".");
+          ingredients.push({
+            name: name[0],
+            image: utils.createImageUrl(destination, filename),
+          });
+        });
 
-  res.status(200).send(result);
+        recipe.ingredients = ingredients;
+      }
+    }
+    const result = await recipe.save();
+    const users = await User.find().lean();
+    for (const user of users) {
+      if (user.expoPushToken)
+        await sendPushNotification(user.expoPushToken, result.name, {
+          id: result._id,
+        });
+    }
+    res.status(200).send(result);
+  }
 };
 
 exports.getRecipes = async (req, res, next) => {
@@ -192,25 +210,6 @@ exports.getRecommendedRecipes = async (req, res, next) => {
 
   res.status(200).send(filterRecipes);
 };
-exports.addRecipeIngredient = async (req, res, next) => {
-  const { recipeId, name } = req.body;
-  const recipe = await Recipe.findById(recipeId);
-  if (!recipe) {
-    return res.status(404).send("Recipe Not founded!");
-  }
-  const ingredient = {
-    name,
-  };
-  if (!req.file || !name) {
-    return res.status(400).send("Image and name required!");
-  } else {
-    const { destination, filename } = req.file;
-    ingredient.image = utils.createImageUrl(destination, filename);
-    recipe.ingredients = [...recipe.ingredients, ingredient];
-  }
-  const result = await recipe.save();
-  res.status(200).send(result);
-};
 exports.likeRecipe = async (req, res, next) => {
   const { recipe, isLiked } = req.body;
   let like = await Like.findOne({ recipe, user: req.user._id });
@@ -295,4 +294,26 @@ exports.getRecentlyViewedRecipes = async (req, res, next) => {
     });
   });
   res.status(200).send(filterRecipes);
+};
+exports.deleteRecipe = async (req, res, next) => {
+  const { recipe: id } = req.body;
+  let recipe = await Recipe.findById(id);
+  if (!recipe) return res.status(404).send("Recipe not found");
+
+  if (recipe.image) {
+    const path = utils.getImagePath(recipe.image);
+    utils.deleteImage(path);
+  }
+  if (recipe.ingredients.length > 0) {
+    recipe.ingredients.map((ingredient) => {
+      const path = utils.getImagePath(ingredient.image);
+      utils.deleteImage(path);
+    });
+  }
+  const recentlyViewedRecipe = await RecentlyViewedRecipe.deleteMany({
+    recipe: id,
+  });
+  const likes = await Like.deleteMany({ recipe: id });
+  let result = await Recipe.findByIdAndDelete(id);
+  res.status(200).send(result);
 };
