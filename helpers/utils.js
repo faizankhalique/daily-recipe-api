@@ -1,4 +1,5 @@
 const config = require("config");
+const fs = require("fs");
 
 const isImage = (type) => {
   const mimeTypes = ["image/gif", "image/jpeg", "image/png"];
@@ -14,6 +15,10 @@ const createImageUrl = (destination, filename) => {
 
 const getImagePath = (image) => {
   return "./public/uploads" + image.substring(image.indexOf("images") + 6);
+};
+const deleteImage = (path) => {
+  const filePath = path;
+  fs.unlinkSync(filePath);
 };
 const getLastTwoMonthRecipeFilter = () => {
   return {
@@ -84,4 +89,5 @@ module.exports = {
   isImage,
   getLastTwoMonthRecipeFilter,
   getLastMonthRecipeFilter,
+  deleteImage,
 };
