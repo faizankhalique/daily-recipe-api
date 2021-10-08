@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const config = require("config");
 module.exports = async function () {
-  // mongoose.set("useFindAndModify", false);
-  // mongoose.set("useCreateIndex", true);
   mongoose
     .connect(config.get("DB_URI"), {
       useNewUrlParser: true,
